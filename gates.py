@@ -15,8 +15,8 @@ class WrongInput:
 SLOWMODE, HYPERMODE = 0, 1
 
 class Gate:
-	def __init__(self, name, input, output, mode = SLOWMODE):
-		self.name, self.mode = name, mode
+	def __init__(self, name, input, output):
+		self.name = name
 		self.inputNumber, self.outputNumber = input, output
 		self.output = None
 
@@ -50,23 +50,17 @@ class Gate:
 		if None in self.inputTable:
 			return NotEnoughInput
 
-		if self.mode == HYPERMODE:
-			correctData = self.truthTable
-			for i in range(0, self.inputNumber):
-				correctData = [x for x in correctData if x[i] == self.inputTable[i]]
+		correctData = self.truthTable
+		for i in range(0, self.inputNumber):
+			correctData = [x for x in correctData if x[i] == self.inputTable[i]]
 
-			retVal = None
-			if correctData != []:
-				retVal = correctData[0][self.inputNumber]
-				for i in self.children:
-					i[0].addInput(i[1], retVal)
-		
-			self.output = retVal
-			return retVal
-
-		elif self.mode == SLOWMODE:
-			retVal = self.gates["output"][address].output
-
+		retVal = None
+		if correctData != []:
+			retVal = correctData[0][self.inputNumber]
+			for i in self.children:
+				i[0].addInput(i[1], retVal)
+	
+		self.output = retVal
 		return retVal
 
 	# def activeGate(self, *krag):
@@ -81,7 +75,8 @@ class Gate:
 
 class IC(Gate):
 	def __init__(self, name, input, output, mode = SLOWMODE):
-		super().__init__(name, input, output, mode)
+		super().__init__(name, input, output)
+		self.mode = mode
 
 		self.gates = {"input":[], "output":[]}
 
@@ -125,6 +120,7 @@ class IC(Gate):
 				raise WrongInput
 
 			if i[0] not in self.gates or i[2] not in self.gates:
+				print(i[0], i[2], self.gates)
 				raise WrongInput
 
 			g1 = self.gates[i[0]][i[1]]
@@ -188,32 +184,50 @@ if __name__ == "__main__":
 
 
 	norGate = IC("nor", 2, 1, HYPERMODE)
-	norGate.addGate(andGate, "and1")
+	norGate.addGate(orGate, "or1")
 	norGate.addGate(notGate, "not1")
 
 	norGate.connectGate(
 		# (norGate.input0, norGate.k1, 0),
 		# (norGate.input1, norGate.k1, 1),
-		("input", 0, "and1", 0),
-		("input", 1, "and1", 1),
-		("and1", 0, "not1", 0),
+		("input", 0, "or1", 0),
+		("input", 1, "or1", 1),
+		("or1", 0, "not1", 0),
 		("not1", 0, "output", 0)
 	)
-	print(norGate.truthTable)
+	# print(norGate.truthTable)
 
-	norGate.addInput(0,0)
-	norGate.addInput(1,0)
+	norGate.addInput(0,1)
+	norGate.addInput(1,1)
 	d = norGate.checkOutput(0)
 	print(d)
 
-	nandGate = IC("nand", 2, 1, HYPERMODE)
-	nandGate.addGate(andGate, "and")
-	nandGate.addGate(notGate, "not")
 
-	nandGate.connectGate(
-		("input", 0, "and", 0),
-		("input", 1, "and", 1),
-		("and", 0, "not", 0),
-		("not", 0, "output", 0)
+# 여기서 에러남.
+# 역시 IC를 게이트처럼 임포트 해오는 부분이 아직 문제인듯.
+	latch = IC("latch", 2, 2, HYPERMODE)
+	latch.addGate(norGate, "nor1")
+	latch.addGate(norGate, "nor2")
+
+	norGate.connectGate(
+		("input", 0, "nor1", 0),
+		("input", 1, "nor2", 1),
+
+		("nor1", 0, "nor2", 0),
+		("nor2", 0, "nor1", 1),
+
+		("nor1", 0, "output", 0),
+		("nor2", 0, "output", 1)
 	)
-	print(nandGate.truthTable)
+
+	# nandGate = IC("nand", 2, 1)
+	# nandGate.addGate(andGate, "and")
+	# nandGate.addGate(notGate, "not")
+
+	# nandGate.connectGate(
+	# 	("input", 0, "and", 0),
+	# 	("input", 1, "and", 1),
+	# 	("and", 0, "not", 0),
+	# 	("not", 0, "output", 0)
+	# )
+	# print(nandGate.truthTable)
